@@ -1,11 +1,12 @@
 # @title **Define Mubert methods and pre-compute things**
-import subprocess, time
+import time
 
 start_time = time.time()
 
 import numpy as np
 from sentence_transformers import SentenceTransformer
 
+file_name = 'test.wav'
 minilm = SentenceTransformer('all-MiniLM-L6-v2')
 
 mubert_tags_string = 'tribal,action,kids,neo-classic,run 130,pumped,jazz / funk,ethnic,dubtechno,reggae,acid jazz,' \
@@ -64,7 +65,7 @@ def get_track_by_tags(tags, pat, duration, maxit=20, autoplay=False, loop=False)
         r = httpx.get(trackurl)
         if r.status_code == 200:
             audio = Audio(trackurl)
-            with open('test.wav', 'wb') as f:
+            with open(file_name, 'wb') as f:
                 f.write(audio.data)
             return audio.data
         time.sleep(1)
@@ -82,6 +83,7 @@ def find_similar(em, embeddings, method='cosine'):
 
 
 def get_tags_for_prompts(prompts, top_n=5, debug=True):
+    global file_name
     prompts_embeddings = minilm.encode(prompts)
     ret = []
     for i, pe in enumerate(prompts_embeddings):
@@ -90,12 +92,13 @@ def get_tags_for_prompts(prompts, top_n=5, debug=True):
         top_prob = 1 - scores[idxs[:top_n]]
         if debug:
             print(f"Prompt: {prompts[i]}\nTags: {', '.join(top_tags)}\nScores: {top_prob}\n\n\n")
+        file_name = f"samples/{prompts[i]}.wav"
         ret.append((prompts[i], list(top_tags)))
     return ret
 
 
 # @markdown **Get personal access token in Mubert and define API methods**
-email = "pr0strel@yandex.ru"  # @param {type:"string"}
+email = "d.burlakow88@yandex.ru"  # @param {type:"string"}
 
 r = httpx.post('https://api-b2b.mubert.com/v2/GetServiceAccess',
                json={
@@ -115,13 +118,13 @@ print(f'Got token: {pat}')
 
 # @title **Generate some music 🎵**
 
-#prompt = 'simple rock'  # @param {type:"string"}
-#duration = 30  # @param {type:"number"}
+# prompt = 'simple rock'  # @param {type:"string"}
+# duration = 30  # @param {type:"number"}
 loop = False  # @param {type:"boolean"}
 
 
 def generate_track_by_prompt(prompt='simple rock',
-                             duration=30 ,
+                             duration=30,
                              loop=False):
     _, tags = get_tags_for_prompts([prompt, ])[0]
     try:
@@ -131,6 +134,7 @@ def generate_track_by_prompt(prompt='simple rock',
     except Exception as e:
         print(str(e))
     print('\n')
+
 
 if __name__ == '__main__':
     generate_track_by_prompt()
